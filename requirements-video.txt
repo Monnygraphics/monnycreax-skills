@@ -1,0 +1,12 @@
+# Python packages for reel-editor (video-editing).
+# ffmpeg/ffprobe must also be on PATH.
+numpy
+scipy
+soundfile
+requests
+faster-whisper
+opencv-python-headless
+mediapipe
+rembg
+nara_wpe
+pyyaml

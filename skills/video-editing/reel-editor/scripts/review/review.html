@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Transcript Review</title>
+<style>
+  :root { --bg: #f6f3ee; --ink: #1d1b18; --mut: #7a736a; --line: #e2dcd2; --cut: #c2412d; --ok: #2f7d5b; --card: #fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #151413; --ink: #ece7df; --mut: #9a9389; --line: #2c2a27; --card: #1e1c1a; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, "Segoe UI", sans-serif; }
+  .wrap { display: grid; grid-template-columns: 360px 1fr; gap: 24px; max-width: 1300px; margin: 0 auto; padding: 20px 16px; }
+  @media (max-width: 860px) { .wrap { grid-template-columns: 1fr; } .side { position: static !important; } }
+  .side { position: sticky; top: 16px; align-self: start; }
+  video { width: 100%; max-height: 62vh; background: #000; border-radius: 12px; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .mut { color: var(--mut); font-size: 13px; }
+  .stats { display: flex; gap: 14px; margin: 12px 0; font-size: 14px; }
+  .stats b { font-variant-numeric: tabular-nums; }
+  .btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  button { font: inherit; font-size: 14px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+  button.pri { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  textarea { width: 100%; height: 120px; font: 12px/1.4 ui-monospace, Consolas, monospace; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); padding: 8px; }
+  .help { font-size: 13px; color: var(--mut); margin-top: 10px; }
+  .help kbd { font: 12px ui-monospace, monospace; border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; }
+  .tx { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px; font-size: 19px; line-height: 2; }
+  .w { cursor: pointer; border-radius: 4px; padding: 1px 2px; }
+  .w:hover { background: var(--line); }
+  .w.cut { color: var(--cut); text-decoration: line-through; opacity: .7; }
+  .w.fill { font-style: italic; }
+  .w.now { outline: 2px solid var(--ok); }
+  .w.sel { background: color-mix(in srgb, var(--ok) 22%, transparent); }
+  .w.fixed { border-bottom: 2px dotted var(--ok); }
+  .gap { display: inline-block; font-size: 11px; line-height: 1; padding: 3px 6px; margin: 0 3px; border-radius: 10px; background: var(--line); color: var(--mut); vertical-align: 2px; }
+  .seg { display: block; margin-top: 6px; }
+  .ts { font: 11px ui-monospace, monospace; color: var(--mut); margin-right: 6px; user-select: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="side">
+    <h1 id="ttl">Transcript review</h1>
+    <div class="mut">Strike what should go. Playback skips struck words so you hear the cut.</div>
+    <video id="v" controls preload="auto"></video>
+    <div class="stats"><span>Kept <b id="kept">0</b>s</span><span>Cut <b id="cutn">0</b>s</span><span><b id="nr">0</b> ranges</span></div>
+    <div class="btns">
+      <button class="pri" id="copy">Copy for Claude</button>
+      <button id="dl">Download JSON</button>
+      <button id="skip">Skip cuts: on</button>
+    </div>
+    <textarea id="out" readonly></textarea>
+    <div class="help">
+      <b>Click</b> a word to play from it. <b>Shift+click</b> selects a range. <kbd>X</kbd> or <kbd>Del</kbd> strikes or restores
+      the selection. <b>Double-click</b> a word to fix its spelling (caption fix). <kbd>Space</kbd> plays or pauses.
+      Fillers are pre-struck. Red words were suggested by Claude.
+    </div>
+  </div>
+  <div class="tx" id="tx"></div>
+</div>
+<script>
+const DATA = /*__DATA__*/{};
+const W = DATA.words, v = document.getElementById("v"), tx = document.getElementById("tx");
+v.src = DATA.video; document.getElementById("ttl").textContent = DATA.title || "Transcript review";
+const FILL = new Set(DATA.fillers || []);
+const norm = s => s.toLowerCase().replace(/[^a-z']/g, "");
+const strike = (DATA.strike || []).map(r => r.split("-").map(Number));
+W.forEach((w, i) => {
+  w.i = i; w.cut = FILL.has(norm(w.w)) || strike.some(([a, b]) => w.s >= a - 0.02 && w.e <= b + 0.02);
+});
+let sel = null, anchor = null, fixes = {};
+function render() {
+  tx.innerHTML = "";
+  let p = document.createElement("span"); p.className = "seg"; tx.appendChild(p);
+  W.forEach((w, i) => {
+    const prev = W[i - 1];
+    if (prev && w.s - prev.e > 0.7) {
+      if (w.s - prev.e > 1.6) { p = document.createElement("span"); p.className = "seg"; tx.appendChild(p); }
+      const g = document.createElement("span"); g.className = "gap"; g.textContent = (w.s - prev.e).toFixed(1) + "s"; p.appendChild(g);
+    }
+    if (!prev || w.s - prev.e > 1.6) { const t = document.createElement("span"); t.className = "ts"; t.textContent = fmt(w.s); p.appendChild(t); }
+    const s = document.createElement("span");
+    s.className = "w" + (w.cut ? " cut" : "") + (FILL.has(norm(w.w)) ? " fill" : "") + (fixes[i] ? " fixed" : "") + (sel && i >= sel[0] && i <= sel[1] ? " sel" : "");
+    s.textContent = fixes[i] || w.w; s.dataset.i = i; p.appendChild(s); p.appendChild(document.createTextNode(" "));
+  });
+  output();
+}
+const fmt = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+function ranges() {   // struck runs of words -> source ranges, cut from the end of the last kept word to the next kept word
+  const r = []; let i = 0;
+  while (i < W.length) {
+    if (!W[i].cut) { i++; continue; }
+    let j = i; while (j + 1 < W.length && W[j + 1].cut) j++;
+    const a = i > 0 ? W[i - 1].e + 0.04 : 0, b = j + 1 < W.length ? W[j + 1].s - 0.04 : W[j].e + 0.3;
+    if (b > a) r.push([+a.toFixed(2), +b.toFixed(2)]);
+    i = j + 1;
+  }
+  return r;
+}
+function output() {
+  const r = ranges(), cut = r.reduce((n, [a, b]) => n + b - a, 0), dur = DATA.duration || (W.length ? W[W.length - 1].e : 0);
+  document.getElementById("kept").textContent = (dur - cut).toFixed(1);
+  document.getElementById("cutn").textContent = cut.toFixed(1);
+  document.getElementById("nr").textContent = r.length;
+  const fx = Object.entries(fixes).map(([i, t]) => ({ t: W[i].s, from: W[i].w, to: t }));
+  const res = { video: DATA.source, exclude: r.map(([a, b]) => `${a}-${b}`).join(","), fixes: fx };
+  document.getElementById("out").value = JSON.stringify(res, null, 1);
+  window.RESULT = res;
+}
+tx.addEventListener("click", e => {
+  const s = e.target.closest(".w"); if (!s) return;
+  const i = +s.dataset.i;
+  if (e.shiftKey && anchor != null) sel = [Math.min(anchor, i), Math.max(anchor, i)];
+  else { sel = [i, i]; anchor = i; v.currentTime = Math.max(0, W[i].s - 0.05); v.play(); }
+  render();
+});
+tx.addEventListener("dblclick", e => {
+  const s = e.target.closest(".w"); if (!s) return;
+  const i = +s.dataset.i, t = prompt("Correct this word (caption fix):", fixes[i] || W[i].w);
+  if (t != null) { if (t.trim() && t.trim() !== W[i].w) fixes[i] = t.trim(); else delete fixes[i]; render(); }
+});
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "TEXTAREA") return;
+  if ((e.key === "x" || e.key === "Delete" || e.key === "Backspace") && sel) {
+    const to = !W[sel[0]].cut; for (let i = sel[0]; i <= sel[1]; i++) W[i].cut = to; e.preventDefault(); render();
+  } else if (e.key === " ") { e.preventDefault(); v.paused ? v.play() : v.pause(); }
+});
+let skip = true;
+document.getElementById("skip").onclick = e => { skip = !skip; e.target.textContent = "Skip cuts: " + (skip ? "on" : "off"); };
+v.addEventListener("timeupdate", () => {
+  const t = v.currentTime;
+  if (skip) for (const [a, b] of ranges()) if (t >= a && t < b - 0.05) { v.currentTime = b; break; }
+  const now = W.findIndex(w => t >= w.s && t < w.e);
+  document.querySelectorAll(".w.now").forEach(x => x.classList.remove("now"));
+  if (now >= 0) { const s = tx.querySelector(`.w[data-i="${now}"]`); if (s) s.classList.add("now"); }
+});
+document.getElementById("copy").onclick = async () => {
+  const txt = "Transcript review result:\n" + document.getElementById("out").value;
+  try { await navigator.clipboard.writeText(txt); } catch { document.getElementById("out").select(); document.execCommand("copy"); }
+  document.getElementById("copy").textContent = "Copied";
+  setTimeout(() => document.getElementById("copy").textContent = "Copy for Claude", 1500);
+};
+document.getElementById("dl").onclick = () => {
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(window.RESULT, null, 1)], { type: "application/json" }));
+  a.download = (DATA.slug || "review") + "_review.json"; a.click();
+};
+render();
+</script>
+</body>
+</html>

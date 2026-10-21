@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reel Covers</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #222; }
+  /* 1080x1920 reel cover. Everything important sits in the 3:4 grid band (y 240 to 1680). */
+  .card { position: relative; width: 1080px; height: 1920px; overflow: hidden; font-family: var(--head-font); }
+  .light { background: var(--light-bg); --fg: var(--light-fg); --script: var(--light-script); --shape: var(--light-shape); --line: var(--light-line); --bgc: var(--light-bg); }
+  .dark  { background: var(--dark-bg);  --fg: var(--dark-fg);  --script: var(--dark-script);  --shape: var(--dark-shape);  --line: var(--dark-line);  --bgc: var(--dark-bg); }
+
+  .brand { position: absolute; left: 0; right: 0; top: 262px; display: flex; align-items: center; justify-content: center; gap: 14px;
+           font-family: var(--sans-font); font-weight: 500; font-size: 22px; letter-spacing: .38em; color: var(--fg); }
+  .brand svg { width: 52px; height: 50px; }
+
+  /* headline: bold line + script line, like the reference grid */
+  .head { position: absolute; left: 50px; right: 50px; top: 336px; text-align: center; color: var(--fg); z-index: 3; }
+  .l1 { font-weight: var(--head-weight); font-size: calc(108px * var(--head-scale)); line-height: .98; letter-spacing: -0.015em; }
+  .l1, .l2 { text-wrap: balance; }
+  .l2 { font-family: var(--script-font); font-weight: 400; font-size: calc(236px * var(--script-scale)); line-height: .8; color: var(--script); margin-top: -10px; }
+  .l2.long { font-size: calc(168px * var(--script-scale)); line-height: .9; }
+
+  /* arch style */
+  .arch { position: absolute; left: 50%; transform: translateX(-50%); bottom: -40px; width: 780px; height: 1240px;
+          background: var(--shape); border-radius: 390px 390px 0 0; }
+  .arch-line { position: absolute; left: 50%; transform: translateX(-50%); bottom: -40px; width: 860px; height: 1290px;
+          border: 3px solid var(--line); border-bottom: 0; border-radius: 430px 430px 0 0; opacity: .9; }
+  .cut { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); height: 1240px; z-index: 2;
+         filter: drop-shadow(0 18px 30px rgba(0,0,0,.25)); }
+  .tag { position: absolute; right: 64px; top: 1180px; z-index: 4; padding: 16px 22px 18px 26px;
+         border: 2px solid var(--fg); border-right: 0; background: color-mix(in srgb, var(--bgc) 70%, transparent);
+         color: var(--fg); font-family: var(--sans-font); font-weight: 500; font-size: 32px; line-height: 1.1; }
+  .tag b { display: block; font-family: var(--head-font); font-weight: var(--head-weight); font-size: 50px; letter-spacing: -0.01em; }
+  .tag span { display: block; }
+
+  /* full-bleed style */
+  .photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .shade { position: absolute; inset: 0;
+           background: linear-gradient(180deg, rgba(var(--shade),0) 40%, rgba(var(--shade),.55) 62%, rgba(var(--shade),.92) 88%); }
+  .full .head { top: auto; bottom: 320px; }
+  .full .l1 { color: var(--full-l1); font-size: calc(100px * var(--head-scale)); }
+  .full .l2 { color: var(--full-l2); font-size: calc(220px * var(--script-scale)); }
+  .full .l2.long { font-size: calc(168px * var(--script-scale)); }
+  .full .brand { top: auto; bottom: 250px; color: var(--full-l1); }
+  .kicker { display: inline-block; margin-bottom: 22px; padding: 12px 30px 14px; border-radius: 999px; background: var(--kicker-bg); color: var(--kicker-fg);
+            font-family: var(--sans-font); font-weight: 500; font-size: 30px; letter-spacing: .14em; text-transform: uppercase; }
+  .q { font-family: var(--head-font); font-weight: 400; font-size: 120px; color: var(--full-l1); margin-left: 6px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="brand.js"></script>
+<script src="thumbs.js"></script>
+<script src="tweaks.js" onerror="window.TWEAKS={}"></script>
+<script>
+  // ---- brand -> CSS (fonts + variables) ----
+  const B = window.BRAND;
+  const fontUrl = src => /^(https?|file):/.test(src) ? src : "file:///" + src.replace(/\\/g, "/").split("/").map(encodeURIComponent).join("/").replace(/^([A-Za-z])%3A/, "$1:");
+  const css = [];
+  for (const f of B.fonts || []) css.push(`@font-face { font-family: "${f.family}"; src: url("${fontUrl(f.src)}"); font-weight: ${f.weight || 400}; }`);
+  if (B.googleFonts) document.head.insertAdjacentHTML("beforeend", `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?${B.googleFonts}&display=block">`);
+  const c = B.colors, t = B.type;
+  const vars = {
+    "head-font": `"${t.head}", serif`, "head-weight": t.headWeight || 700, "head-scale": t.headScale || 1,
+    "script-font": `"${t.script}", cursive`, "script-scale": t.scriptScale || 1, "sans-font": `"${t.sans}", sans-serif`,
+    "light-bg": c.light.bg, "light-fg": c.light.fg, "light-script": c.light.script, "light-shape": c.light.shape, "light-line": c.light.line,
+    "dark-bg": c.dark.bg, "dark-fg": c.dark.fg, "dark-script": c.dark.script, "dark-shape": c.dark.shape, "dark-line": c.dark.line,
+    "shade": c.full.shade, "full-l1": c.full.l1, "full-l2": c.full.l2, "kicker-bg": c.full.kickerBg, "kicker-fg": c.full.kickerFg,
+  };
+  css.push(":root {" + Object.entries(vars).map(([k, v]) => `--${k}: ${v};`).join(" ") + "}");
+  document.head.insertAdjacentHTML("beforeend", `<style>${css.join("\n")}</style>`);
+
+  // ---- cards ----
+  const esc = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+  const id = new URLSearchParams(location.search).get("id");
+  const list = id ? THUMBS.filter(x => x.id === id) : THUMBS;
+  const tw = window.TWEAKS || {};
+  const lockup = `<div class="brand">${B.mark || ""}<span>${esc(B.wordmark || "")}</span></div>`;
+  const tagFor = x => x.tag || (x.ep && B.tag ? B.tag.map(s => s.replace("{ep}", String(x.ep).padStart(2, "0"))) : null);
+
+  function card(x) {
+    const k = tw[x.id] || {};
+    const head = `
+      <div class="head">
+        ${x.kicker ? `<div class="kicker">${esc(x.kicker)}</div>` : ""}
+        <div class="l1" style="${k.l1 || ""}">${esc(x.line1)}</div>
+        <div class="l2${x.line2.length > 14 ? " long" : ""}" style="${k.l2 || ""}">${esc(x.line2)}${x.accent ? `<span class="q">${esc(x.accent)}</span>` : ""}</div>
+      </div>`;
+    if (x.style === "full") {
+      return `<div class="card full ${x.theme}">
+        <img class="photo" src="photos/${x.photo}.jpg" style="object-position:${k.pos || "50% 30%"};transform:scale(${k.zoom || 1});transform-origin:${k.origin || "50% 30%"}">
+        <div class="shade"></div>
+        ${head}
+        ${lockup}
+      </div>`;
+    }
+    const tag = tagFor(x);
+    return `<div class="card ${x.theme}">
+      ${lockup}
+      ${head}
+      <div class="arch-line"></div>
+      <div class="arch"></div>
+      <img class="cut" src="cutouts/${x.photo}.png" style="height:${k.h || 1240}px;margin-left:${k.x || 0}px;bottom:${k.y || 0}px">
+      ${tag ? `<div class="tag" style="${k.tag || ""}"><span>${esc(tag[0])}</span><b>${esc(tag[1])}</b><span>${esc(tag[2])}</span></div>` : ""}
+    </div>`;
+  }
+  document.getElementById("root").innerHTML = list.map(card).join("");
+</script>
+</body>
+</html>

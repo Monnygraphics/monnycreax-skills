@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>End Card</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: transparent; width: 1080px; height: 1920px; overflow: hidden; }
+  .stage { position: relative; width: 1080px; height: 1920px; font-family: var(--head-font); color: var(--cream); }
+
+  /* veil: dissolves the footage into the brand colour (alpha in the .mov) */
+  .veil { position: absolute; inset: 0; background: radial-gradient(120% 80% at 50% 45%, rgba(var(--veil), .74), rgba(var(--veil), .92));
+          opacity: 0; animation: fade 1s ease-out 0s forwards; }
+
+  .center { position: absolute; left: 0; right: 0; top: 640px; display: flex; flex-direction: column; align-items: center; }
+
+  /* monogram + drawn ring */
+  .markwrap { position: relative; width: 300px; height: 300px; display: grid; place-items: center; }
+  .ring { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke: var(--tan); stroke-width: 2.5; stroke-dasharray: 905; stroke-dashoffset: 905;
+                 animation: draw 1.2s cubic-bezier(.65,0,.35,1) .25s forwards; }
+  .mark { width: 210px; height: 200px; color: var(--cream); opacity: 0; transform: scale(.9);
+          animation: pop .8s cubic-bezier(.2,.8,.2,1) .55s forwards; }
+  .mark svg { width: 100%; height: 100%; }
+
+  .word { margin-top: 34px; font-family: var(--sans-font); font-weight: 500; font-size: 40px; letter-spacing: .7em; padding-left: .7em;
+          opacity: 0; animation: track 1s cubic-bezier(.2,.8,.2,1) 1.0s forwards; }
+  .rule { margin-top: 36px; height: 2px; width: 0; background: var(--tan); animation: grow .7s cubic-bezier(.65,0,.35,1) 1.55s forwards; }
+  .tag { margin-top: 26px; font-family: var(--script-font); font-size: 132px; line-height: 1; color: var(--tan);
+         opacity: 0; transform: translateY(18px); animation: rise .8s cubic-bezier(.2,.8,.2,1) 1.9s forwards; }
+  .next { margin-top: 70px; text-align: center; opacity: 0; transform: translateY(14px); animation: rise .7s cubic-bezier(.2,.8,.2,1) 2.5s forwards; }
+  .next small { display: block; font-family: var(--sans-font); font-weight: 500; font-size: 28px; letter-spacing: .32em; color: var(--blue-gray); }
+  .next b { display: block; margin-top: 12px; font-family: var(--head-font); font-weight: 700; font-size: 56px; max-width: 880px; line-height: 1.12; text-wrap: balance; }
+
+  /* "welcome" variant (episode 1): slower, more cinematic, ends on the brand name */
+  .welcome .veil { animation-duration: 1.2s; }
+  .welcome .center { top: 600px; animation: drift 5s linear 0s forwards; }
+  .welcome .ring circle { animation-duration: 1.4s; animation-delay: .3s; stroke-width: 2; }
+  .welcome .mark { filter: blur(10px); transform: scale(.94); animation: focus 1s cubic-bezier(.2,.8,.2,1) .7s forwards; }
+  .welcome .hello { margin-top: 64px; font-family: var(--sans-font); font-weight: 500; font-size: 34px; letter-spacing: .9em; padding-left: .9em; color: var(--blue-gray);
+                    opacity: 0; animation: track2 1.1s cubic-bezier(.2,.8,.2,1) 1.6s forwards; }
+  .welcome .name { margin-top: 6px; font-family: var(--script-font); font-size: 168px; line-height: 1.1; color: var(--tan); white-space: nowrap;
+                   clip-path: inset(-20% 100% -20% 0); filter: blur(4px); animation: write 1.5s cubic-bezier(.45,.05,.25,1) 2.1s forwards; }
+  .welcome .rule { margin-top: 30px; animation-delay: 3.4s; animation-duration: .8s; }
+  .welcome .line { margin-top: 30px; font-family: var(--sans-font); font-weight: 500; font-size: 26px; letter-spacing: .42em; padding-left: .42em; color: var(--cream);
+                   opacity: 0; animation: soft .9s ease-out 3.75s forwards; }
+  @keyframes drift  { from { transform: scale(1); } to { transform: scale(1.035); } }
+  @keyframes focus  { to { opacity: 1; filter: blur(0); transform: scale(1); } }
+  @keyframes track2 { to { opacity: 1; letter-spacing: .55em; padding-left: .55em; } }
+  @keyframes write  { to { clip-path: inset(-20% -5% -20% 0); filter: blur(0); } }
+  @keyframes soft   { to { opacity: .8; } }
+  @keyframes fade  { to { opacity: 1; } }
+  @keyframes draw  { to { stroke-dashoffset: 0; } }
+  @keyframes pop   { to { opacity: 1; transform: scale(1); } }
+  @keyframes track { to { opacity: 1; letter-spacing: .4em; padding-left: .4em; } }
+  @keyframes grow  { to { width: 260px; } }
+  @keyframes rise  { to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+<div class="stage" id="stage"></div>
+<script src="brand.js"></script>
+<script src="endings.js"></script>
+<script>
+  const B = window.BRAND;
+  const fontUrl = s => "file:///" + s.replace(/\\/g, "/").split("/").map(encodeURIComponent).join("/").replace(/^([A-Za-z])%3A/, "$1:");
+  const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(",");
+  const c = B.colors;
+  document.head.insertAdjacentHTML("beforeend", `<style>
+    ${(B.fonts || []).map(f => `@font-face { font-family: "${f.family}"; src: url("${fontUrl(f.src)}"); font-weight: ${f.weight || 400}; }`).join("\n")}
+    :root { --head-font: "${B.type.head}"; --script-font: "${B.type.script}"; --sans-font: "${B.type.sans}";
+            --cream: ${c.dark.fg}; --tan: ${c.dark.script}; --blue-gray: ${c.dark.line}; --veil: ${hexRgb(c.dark.bg)}; }
+  </style>`);
+
+  const esc = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+  const id = new URLSearchParams(location.search).get("id") || ENDINGS[0].id;
+  const e = ENDINGS.find(x => x.id === id);
+  const stage = document.getElementById("stage");
+  if (e.variant === "welcome") stage.classList.add("welcome");
+  stage.innerHTML = e.variant === "welcome" ? `
+    <div class="veil"></div>
+    <div class="center">
+      <div class="markwrap">
+        <svg class="ring" viewBox="0 0 300 300"><circle cx="150" cy="150" r="144"/></svg>
+        <div class="mark">${B.mark}</div>
+      </div>
+      <div class="hello">WELCOME TO</div>
+      <div class="name">${esc(B.name)}</div>
+      <div class="rule"></div>
+      <div class="line">${esc(ENDCARD.tagline.replace(/.$/, "").toUpperCase())}</div>
+    </div>` : `
+    <div class="veil"></div>
+    <div class="center">
+      <div class="markwrap">
+        <svg class="ring" viewBox="0 0 300 300"><circle cx="150" cy="150" r="144"/></svg>
+        <div class="mark">${B.mark}</div>
+      </div>
+      <div class="word">${esc(B.wordmark)}</div>
+      <div class="rule"></div>
+      <div class="tag">${esc(ENDCARD.tagline)}</div>
+      <div class="next">${e.next ? `<small>UP NEXT</small><b>${esc(e.next)}</b>` : `<small>${esc(ENDCARD.follow.toUpperCase())}</small>`}</div>
+    </div>`;
+
+  // renderer hook: freeze every animation at time t (seconds)
+  window.seek = t => { for (const a of document.getAnimations()) { a.pause(); a.currentTime = t * 1000; } };
+</script>
+</body>
+</html>

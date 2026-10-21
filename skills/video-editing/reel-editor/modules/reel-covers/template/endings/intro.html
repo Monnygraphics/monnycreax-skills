@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Intro Title</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: transparent; width: 1080px; height: 1920px; overflow: hidden; }
+  .stage { position: relative; width: 1080px; height: 1920px; color: var(--cream); }
+
+  /* full-frame title card: replaces the CapCut title card at the start of each video.
+     The page draws type only (transparent), the renderer puts it on the brand colour for the MP4. */
+  .block { position: absolute; left: 60px; right: 60px; top: 640px; text-align: center; display: flex; flex-direction: column; align-items: center;
+           animation: drift 2.8s linear 0s forwards; }
+  .kicker { margin-bottom: 14px; display: inline-flex; align-items: center; gap: 16px; font-family: var(--sans-font); font-weight: 500; font-size: 27px;
+            letter-spacing: .5em; padding-left: .5em; text-transform: uppercase; color: var(--blue-gray);
+            opacity: 0; animation: track .7s cubic-bezier(.2,.8,.2,1) .1s forwards; }
+  .markwrap { position: relative; width: 190px; height: 190px; display: grid; place-items: center; margin-bottom: 40px; }
+  .ring { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke: var(--tan); stroke-width: 2.5; stroke-dasharray: 572; stroke-dashoffset: 572;
+                 animation: draw .9s cubic-bezier(.65,0,.35,1) 0s forwards; }
+  .mark { width: 132px; height: 126px; color: var(--cream); opacity: 0; transform: scale(.9); animation: pop .6s cubic-bezier(.2,.8,.2,1) .15s forwards; }
+  .mark svg { width: 100%; height: 100%; }
+  .l1.long1 { font-size: 100px; }
+  .mask { overflow: hidden; padding-top: 8px; }
+  .l1 { font-family: var(--head-font); font-weight: 700; font-size: 112px; line-height: 1.02; text-wrap: balance;
+        transform: translateY(110%); animation: up .65s cubic-bezier(.2,.8,.2,1) .25s forwards; }
+  .l2 { margin-top: -2px; font-family: var(--script-font); font-size: 200px; line-height: .95; color: var(--tan); white-space: nowrap;
+        clip-path: inset(-25% 100% -25% 0); animation: write .8s cubic-bezier(.45,.05,.25,1) .55s forwards; }
+  .l2.long { font-size: 150px; }
+  .rule { margin: 40px auto 0; height: 2px; width: 0; background: var(--tan); animation: grow .55s cubic-bezier(.65,0,.35,1) .95s forwards; }
+
+  @keyframes draw  { to { stroke-dashoffset: 0; } }
+  @keyframes pop   { to { opacity: 1; transform: scale(1); } }
+  @keyframes drift { from { transform: scale(1); } to { transform: scale(1.03); } }
+  @keyframes track { from { letter-spacing: .8em; } to { opacity: 1; letter-spacing: .5em; } }
+  @keyframes up    { to { transform: none; } }
+  @keyframes write { to { clip-path: inset(-25% -5% -25% 0); } }
+  @keyframes grow  { to { width: 220px; } }
+</style>
+</head>
+<body>
+<div class="stage" id="stage"></div>
+<script src="brand.js"></script>
+<script src="intros.js"></script>
+<script>
+  const B = window.BRAND;
+  const fontUrl = s => "file:///" + s.replace(/\\/g, "/").split("/").map(encodeURIComponent).join("/").replace(/^([A-Za-z])%3A/, "$1:");
+  const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(",");
+  const c = B.colors;
+  document.head.insertAdjacentHTML("beforeend", `<style>
+    ${(B.fonts || []).map(f => `@font-face { font-family: "${f.family}"; src: url("${fontUrl(f.src)}"); font-weight: ${f.weight || 400}; }`).join("\n")}
+    :root { --head-font: "${B.type.head}"; --script-font: "${B.type.script}"; --sans-font: "${B.type.sans}";
+            --cream: ${c.dark.fg}; --tan: ${c.dark.script}; --blue-gray: ${c.dark.line}; --veil: ${hexRgb(c.dark.bg)}; }
+  </style>`);
+  const esc = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+  const id = new URLSearchParams(location.search).get("id") || INTROS[0].id;
+  const e = INTROS.find(x => x.id === id);
+  const kicker = INTRO.kicker.replace("{ep}", String(e.ep).padStart(2, "0"));
+  document.getElementById("stage").innerHTML = `
+    <div class="block">
+      <div class="markwrap"><svg class="ring" viewBox="0 0 190 190"><circle cx="95" cy="95" r="91"/></svg><div class="mark">${B.mark}</div></div>
+      <div class="kicker"><span>${esc(kicker)}</span></div>
+      <div class="mask"><div class="l1${e.line1.length > 15 ? " long1" : ""}">${esc(e.line1)}</div></div>
+      <div class="l2${e.line2.length > 14 ? " long" : ""}">${esc(e.line2)}</div>
+      <div class="rule"></div>
+    </div>`;
+  window.seek = t => { for (const a of document.getAnimations()) { a.pause(); a.currentTime = t * 1000; } };
+</script>
+</body>
+</html>

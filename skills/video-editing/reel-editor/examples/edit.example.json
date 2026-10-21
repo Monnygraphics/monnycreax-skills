@@ -1,0 +1,75 @@
+{
+  "template": "pill",
+  "transition": "hex",
+  "brand": {
+    "accent": "#7A1414",
+    "accent2": "#2A0606",
+    "ink": "#FFFFFF",
+    "paper": "#EFEDE8",
+    "dark": "#120505",
+    "sans": "Inter",
+    "serif": "Fraunces",
+    "display": "Montserrat"
+  },
+  "title": {
+    "text": "African Achievements",
+    "start": 0.0,
+    "end": 3.0
+  },
+  "emphasis": [
+    "belong",
+    "beautiful",
+    "evidence",
+    "family"
+  ],
+  "punchins": [
+    {
+      "start": 5.22,
+      "end": 10.4,
+      "zoom": 1.16
+    },
+    {
+      "start": 15.5,
+      "end": 20.86,
+      "zoom": 1.16
+    },
+    {
+      "start": 25.94,
+      "end": 28.0,
+      "zoom": 1.16
+    }
+  ],
+  "broll": [
+    {
+      "start": 4.0,
+      "end": 7.6,
+      "src": "broll/city.jpg",
+      "layout": "card"
+    },
+    {
+      "start": 16.3,
+      "end": 20.2,
+      "src": "broll/field.jpg",
+      "layout": "full"
+    }
+  ],
+  "cards": [
+    {
+      "start": 12.9,
+      "end": 14.5,
+      "text": "proving",
+      "style": "paper"
+    }
+  ],
+  "music": {
+    "src": "music/soft-pad.mp3",
+    "db": -24
+  },
+  "intro_overlay": null,
+  "endcard": null,
+  "captions": {
+    "maxWords": 4,
+    "maxChars": 24,
+    "y": 0.64
+  }
+}
